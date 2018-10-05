@@ -211,8 +211,9 @@ returned, otherwise the base image name is used."
   (set (make-local-variable 'parse-sexp-ignore-comments) t)
   (set (make-local-variable 'font-lock-defaults)
        '(dockerfile-font-lock-keywords nil t))
-  (setq local-abbrev-table dockerfile-mode-abbrev-table)
-  (setq indent-line-function #'dockerfile-indent-line-function))
+  (set (make-local-variable 'indent-line-function)
+       #'dockerfile-indent-line-function)
+  (setq local-abbrev-table dockerfile-mode-abbrev-table))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("Dockerfile\\(?:\\..*\\)?\\'" . dockerfile-mode))
