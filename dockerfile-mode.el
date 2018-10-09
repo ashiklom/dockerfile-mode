@@ -115,20 +115,41 @@ Each element of the list will be passed as a separate
 (unless dockerfile-mode-abbrev-table
   (define-abbrev-table 'dockerfile-mode-abbrev-table ()))
 
+(defun dockerfile--is-keyword-line ()
+  "Check if the current line begins with a keyword."
+  (member (get-text-property (point-at-bol) 'face)
+	  '(font-lock-comment-delimiter-face font-lock-keyword-face)))
+
+(defun dockerfile--starts-with-whitespace ()
+  "Check if the current line begins with whitespace."
+  (string-match-p "^\\s-+" (thing-at-point 'line)))
+
+(defun dockerfile--get-current-indent ()
+  "Calculate the current indentation value."
+  (save-excursion
+    (beginning-of-line)
+    (string-match "\\S-" (thing-at-point 'line))))
+
+(defun dockerfile--get-target-indent ()
+  "Calculate correct indentation value."
+  (unless (dockerfile--is-keyword-line)
+    (save-excursion
+      (previous-line)
+      (beginning-of-line)
+      (if (dockerfile--starts-with-whitespace)
+	  (string-match-p "\\S-" (thing-at-point 'line))
+	(+ 1 (string-match-p "\\s-" (thing-at-point 'line)))))))
+
 (defun dockerfile-indent-line-function ()
   "Indent lines in a Dockerfile.
 
 Lines beginning with a keyword are ignored, and any others are
 indented by one `tab-width'."
-  (unless (member (get-text-property (point-at-bol) 'face)
-                  '(font-lock-comment-delimiter-face font-lock-keyword-face))
+  (unless (dockerfile--is-keyword-line)
     (save-excursion
       (beginning-of-line)
-      (skip-chars-forward "[ \t]" (point-at-eol))
-      (unless (equal (point) (point-at-eol)) ; Ignore empty lines.
-        ;; Delete existing whitespace.
-        (delete-char (- (point-at-bol) (point)))
-        (indent-to tab-width)))))
+      (delete-char (dockerfile--get-current-indent))
+      (indent-to (dockerfile--get-target-indent)))))
 
 (defun dockerfile-build-arg-string ()
   "Create a --build-arg string for each element in `dockerfile-build-args'."
@@ -213,6 +234,7 @@ returned, otherwise the base image name is used."
        '(dockerfile-font-lock-keywords nil t))
   (set (make-local-variable 'indent-line-function)
        #'dockerfile-indent-line-function)
+  (set (make-local-variable 'indent-tabs-mode) nil)
   (setq local-abbrev-table dockerfile-mode-abbrev-table))
 
 ;;;###autoload
